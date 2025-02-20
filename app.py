@@ -1,10 +1,11 @@
 import os
-from flask import Flask, request, send_file
-from flask_cors import CORS  # 載入 CORS 套件
+from flask import Flask, request, send_file, jsonify
+from flask_cors import CORS
 from docx import Document
+from docx.shared import Pt
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # 允許所有來源
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 UPLOAD_FOLDER = "uploads"
 OUTPUT_FOLDER = "output"
@@ -13,13 +14,16 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 @app.route("/")
 def home():
-    return "✅ Flask Word 合併 API 已啟動！"
+    return jsonify({"message": "✅ Flask Word 合併 API 已啟動！"})
 
 @app.route("/upload", methods=["POST"])
 def upload_files():
+    if "files" not in request.files:
+        return jsonify({"error": "❌ 未收到檔案"}), 400
+
     files = request.files.getlist("files")
     if not files:
-        return "❌ 未收到檔案", 400
+        return jsonify({"error": "❌ 未收到檔案"}), 400
 
     file_paths = []
     for file in files:
@@ -33,13 +37,24 @@ def upload_files():
     return send_file(output_path, as_attachment=True)
 
 def merge_docs(files, output_path):
-    merged_doc = Document()
-    for index, file in enumerate(files):
+    merged_doc = Document(files[0])  # 以第一個文件為主文件
+
+    for file in files[1:]:
+        merged_doc.add_page_break()  # 插入分頁符號
         doc = Document(file)
+
         for para in doc.paragraphs:
-            merged_doc.add_paragraph(para.text)
-        if index != len(files) - 1:
-            merged_doc.add_page_break()  # 插入分頁符號
+            new_para = merged_doc.add_paragraph()
+            new_para.add_run(para.text).font.size = Pt(12)  # 確保字體大小統一
+        
+        # 保留表格
+        for table in doc.tables:
+            new_table = merged_doc.add_table(rows=0, cols=len(table.columns))
+            for row in table.rows:
+                new_row = new_table.add_row()
+                for cell_idx, cell in enumerate(row.cells):
+                    new_row.cells[cell_idx].text = cell.text
+
     merged_doc.save(output_path)
 
 if __name__ == "__main__":
