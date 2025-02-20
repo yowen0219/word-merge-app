@@ -37,6 +37,12 @@ def upload_files():
     
     return send_file(output_path, as_attachment=True)
 
+# 測試首頁
+@app.route("/")
+def home():
+    return "Flask Word 合併 API 已啟動！"
+
 # 啟動 Flask 應用
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))  # 讓 Render 自動設定 Port
+    app.run(host="0.0.0.0", port=port)
