@@ -3,10 +3,16 @@ from flask import Flask, request, send_file
 from docx import Document
 
 app = Flask(__name__)
+
 UPLOAD_FOLDER = "uploads"
 OUTPUT_FOLDER = "output"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+# 測試首頁
+@app.route("/")
+def home():
+    return "✅ Flask Word 合併 API 已啟動！"
 
 # 合併 DOCX 檔案
 def merge_docs(files, output_path):
@@ -24,7 +30,7 @@ def merge_docs(files, output_path):
 def upload_files():
     files = request.files.getlist("files")
     if not files:
-        return "未收到檔案", 400
+        return "❌ 未收到檔案", 400
 
     file_paths = []
     for file in files:
@@ -37,12 +43,8 @@ def upload_files():
     
     return send_file(output_path, as_attachment=True)
 
-# 測試首頁
-@app.route("/")
-def home():
-    return "Flask Word 合併 API 已啟動！"
-
 # 啟動 Flask 應用
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # 讓 Render 自動設定 Port
+    print(f"🚀 Flask 伺服器啟動中，監聽 PORT: {port}")
     app.run(host="0.0.0.0", port=port)
